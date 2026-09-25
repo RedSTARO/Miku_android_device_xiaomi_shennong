@@ -1466,8 +1466,6 @@ vendor/lib64/libqvr_eyetracking_plugin.so
 vendor/lib64/libqvrservice_client.qti.so
 vendor/lib64/libSNPESample.so
 vendor/lib64/libtracker_6dof_impl.so
-vendor/lib64/vendor.xiaomi.hardware.aon-V1-ndk.so
-vendor/lib64/vendor.xiaomi.hardware.quickcamera-V1-ndk.so
 
 # Camera Provider External
 vendor/etc/external_camera_config.xml
@@ -1846,7 +1844,6 @@ vendor/etc/init/vendor.xiaomi.hardware.displayfeature_aidl-service.rc
 vendor/etc/vintf/manifest/vendor.xiaomi.hardware.displayfeature_aidl-service.xml
 vendor/lib64/libdisplayfeature.so
 vendor/lib64/libdisplayfeatureservice.so
-vendor/lib64/vendor.xiaomi.hardware.displayfeature_aidl-V2-ndk.so
 
 # Display HDR
 vendor/lib64/libhdr_backlight_adapter.so
@@ -1928,7 +1925,6 @@ vendor/lib64/vendor.rongcard.eid-V1-ndk_platform.so
 odm/etc/vintf/manifest/fod-aidl.xml
 odm/lib64/hw/fingerprint.goodix_fod.so
 odm/lib64/libgf_hal.so
-vendor/lib64/vendor.xiaomi.hardware.fx.tunnel-V1-ndk.so
 
 # FM
 vendor/lib64/vendor.qti.hardware.fm@1.0.so
@@ -3074,3 +3070,4 @@ vendor/lib64/vendor.qti.hardware.wifidisplaysessionl@1.0-halimpl.so
 
 # Xiaomi MAC address
 vendor/bin/nv_mac
+vendor/lib64/vendor.xiaomi.sensor.citsensorservice-V1-ndk.so
