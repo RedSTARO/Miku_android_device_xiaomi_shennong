@@ -2430,8 +2430,6 @@ vendor/etc/init/poweropt-service.rc
 vendor/lib64/libpowercore.so
 
 # Protobuf
-vendor/lib64/libprotobuf-cpp-full-21.7.so
-vendor/lib64/libprotobuf-cpp-lite-21.7.so
 
 # QCC
 vendor/bin/qcc-vendor
