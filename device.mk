@@ -277,6 +277,7 @@ PRODUCT_PACKAGES += \
 # Rootdir
 PRODUCT_PACKAGES += \
     charger_fw_fstab.qti \
+    charger_fw_fstab.qti.recovery \
     fstab.qcom \
     hals.conf \
     init.recovery.qcom.rc \

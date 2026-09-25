@@ -6,8 +6,10 @@
 prebuilt_etc {
     name: "charger_fw_fstab.qti",
     src: "etc/charger_fw_fstab.qti",
-    recovery: true,
     vendor: true,
+    // recovery: true + vendor: true registers the same Make module twice with
+    // Miku UI's build/soong; the recovery copy is the ".recovery" variant.
+    recovery_available: true,
 }
 
 prebuilt_etc {
