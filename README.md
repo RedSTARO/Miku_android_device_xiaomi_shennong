@@ -1,5 +1,14 @@
 # Device tree for Xiaomi 14 Pro
 
+Miku UI Blooming_v2 port of [kmiit's lineage-23.0 device tree](https://github.com/kmiit/android_device_xiaomi_shennong),
+with the kernel built from source. Built by [MikuUIBuilder](https://github.com/RedSTARO/MikuUIBuilder) (branch `shennong`):
+
+```bash
+. build/envsetup.sh
+lunch miku_shennong-bp4a-userdebug
+make diva
+```
+
 > [!WARNING]
 > **BUGS**
 > - OTG doesn't have power supply 

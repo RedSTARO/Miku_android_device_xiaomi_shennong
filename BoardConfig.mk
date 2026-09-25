@@ -68,8 +68,8 @@ BOARD_KERNEL_BASE := 0x00000000
 BOARD_KERNEL_CMDLINE := \
     video=vfb:640x400,bpp=32,memsize=3072000 \
     disable_dma32=on \
-    swinfo.fingerprint=$(LINEAGE_VERSION) \
-    mtdoops.fingerprint=$(LINEAGE_VERSION)
+    swinfo.fingerprint=$(strip $(PROD_VERSION)) \
+    mtdoops.fingerprint=$(strip $(PROD_VERSION))
 
 BOARD_BOOTCONFIG := \
     androidboot.console=0 \
@@ -94,6 +94,9 @@ BOARD_USES_GENERIC_KERNEL_IMAGE := true
 BOARD_USES_QCOM_MERGE_DTBS_SCRIPT := true
 TARGET_NEEDS_DTBOIMAGE := true
 
+# vendor/miku only defaults to a GCC-free (LLVM only) kernel build for 5.10,
+# this 6.1 GKI kernel must not fall back to the GCC 4.9 prebuilts.
+TARGET_KERNEL_NO_GCC := true
 TARGET_KERNEL_SOURCE := kernel/xiaomi/sm8650
 TARGET_KERNEL_CONFIG := \
     gki_defconfig \
@@ -135,14 +138,16 @@ TARGET_KERNEL_EXT_MODULES := \
     nxp/opensource/driver \
     xiaomi/touch-driver:kbuild
 
-BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.system_dlkm))
+# vendor/miku's kernel.mk takes the GKI modules that go to system_dlkm from
+# BOARD_SYSTEM_KERNEL_MODULES (file names, unlike LineageOS' SYSTEM_KERNEL_MODULES).
+BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(addsuffix .ko,$(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.system_dlkm)))
+BOARD_SYSTEM_KERNEL_MODULES := $(BOARD_SYSTEM_KERNEL_MODULES_LOAD)
 BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE := $(DEVICE_PATH)/configs/modules/modules.blocklist
 BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.vendor_dlkm))
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES_BLOCKLIST_FILE := $(BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE)
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.first_stage))
 BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD  := $(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.recovery))
 BOOT_KERNEL_MODULES := $(BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD)
-SYSTEM_KERNEL_MODULES := $(BOARD_SYSTEM_KERNEL_MODULES_LOAD)
 
 # Metadata
 BOARD_USES_METADATA_PARTITION := true
