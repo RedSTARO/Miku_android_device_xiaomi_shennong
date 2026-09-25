@@ -1447,7 +1447,6 @@ odm/lib64/vendor.qti.hardware.camera.offlinecamera-service-impl.so
 odm/lib64/vendor.qti.hardware.camera.postproc@1.0-service-impl.so
 odm/lib64/vendor.xiaomi.hardware.aidlbgservice-V1-impl.so
 odm/lib64/vendor.xiaomi.hardware.aidlbgservice-V1-ndk_platform.so
-odm/lib64/vendor.xiaomi.hardware.bgservice@1.0.so
 odm/lib64/vendor.xiaomi.hardware.bgservice@1.0-impl.so
 vendor/etc/camera/cameraopt_perf.json
 vendor/etc/camera/cameraopt_vendor.json
