@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+// Recovery copy only: /vendor/etc/charger_fw_fstab.qti comes from the stock blob
+// (proprietary-files.txt), and Miku UI's build/soong neither accepts recovery: true
+// together with vendor: true nor two installers for the same vendor file.
 prebuilt_etc {
     name: "charger_fw_fstab.qti",
     src: "etc/charger_fw_fstab.qti",
-    vendor: true,
-    // recovery: true + vendor: true registers the same Make module twice with
-    // Miku UI's build/soong; the recovery copy is the ".recovery" variant.
-    recovery_available: true,
+    recovery: true,
 }
 
 prebuilt_etc {
