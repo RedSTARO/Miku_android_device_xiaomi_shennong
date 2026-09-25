@@ -138,10 +138,11 @@ TARGET_KERNEL_EXT_MODULES := \
     nxp/opensource/driver \
     xiaomi/touch-driver:kbuild
 
-# vendor/miku's kernel.mk takes the GKI modules that go to system_dlkm from
-# BOARD_SYSTEM_KERNEL_MODULES (file names, unlike LineageOS' SYSTEM_KERNEL_MODULES).
+# vendor/miku's kernel.mk (patched by MikuUIBuilder) routes the GKI modules named in
+# SYSTEM_KERNEL_MODULES to system_dlkm; it wants module file names (foo.ko), unlike
+# LineageOS. BOARD_SYSTEM_KERNEL_MODULES stays unset: for AOSP it means prebuilt files.
 BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(addsuffix .ko,$(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.system_dlkm)))
-BOARD_SYSTEM_KERNEL_MODULES := $(BOARD_SYSTEM_KERNEL_MODULES_LOAD)
+SYSTEM_KERNEL_MODULES := $(BOARD_SYSTEM_KERNEL_MODULES_LOAD)
 BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE := $(DEVICE_PATH)/configs/modules/modules.blocklist
 BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/configs/modules/modules.load.vendor_dlkm))
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES_BLOCKLIST_FILE := $(BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE)
