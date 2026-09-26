@@ -242,7 +242,7 @@ PRODUCT_COPY_FILES += \
 
 # Overlays
 PRODUCT_PACKAGES += \
-    CarrierConfig \
+    CarrierConfigOverlayShennong \
     FrameworksResShennong \
     FrameworksResXiaomi \
     NcmTetheringOverlay \
