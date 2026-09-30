@@ -172,7 +172,12 @@ PRODUCT_COPY_FILES += \
 $(call inherit-product, vendor/qcom/opensource/healthd-ext/health-vendor-product.mk)
 
 # IPACM
-$(call inherit-product, hardware/qcom-caf/sm8650/data-ipa-cfg-mgr/ipacm_vendor_product.mk)
+# Listed directly: ipacm_vendor_product.mk only adds them when TARGET_BOARD_PLATFORM
+# (a BoardConfig variable, still empty during product configuration) is a QCOM platform.
+PRODUCT_PACKAGES += \
+    ipacm \
+    IPACM_cfg.xml \
+    IPACM_Filter_cfg.xml
 
 # IR Blaster
 PRODUCT_PACKAGES += \
@@ -185,7 +190,7 @@ PRODUCT_PACKAGES += \
     android.hardware.weaver-service.nxp
 
 PRODUCT_PACKAGES += \
-    android.hardware.hardware_keystore.xml \
+    android.hardware.hardware_keystore_V3.xml \
     android.software.device_id_attestation.prebuilt.xml
 
 PRODUCT_COPY_FILES += \
@@ -297,6 +302,7 @@ PRODUCT_PACKAGES += \
     android.hardware.sensor.accelerometer.prebuilt.xml \
     android.hardware.sensor.compass.prebuilt.xml \
     android.hardware.sensor.barometer.prebuilt.xml \
+    android.hardware.sensor.dynamic.head_tracker.prebuilt.xml \
     android.hardware.sensor.gyroscope.prebuilt.xml \
     android.hardware.sensor.hifi_sensors.prebuilt.xml \
     android.hardware.sensor.light.prebuilt.xml \

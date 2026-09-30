@@ -160,7 +160,7 @@ TARGET_OTA_ASSERT_DEVICE := shennong
 BOARD_FLASH_BLOCK_SIZE := 262144  # (BOARD_KERNEL_PAGESIZE * 64)
 
 BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
-BOARD_DTBOIMG_PARTITION_SIZE := 25165824
+BOARD_DTBOIMG_PARTITION_SIZE := 20971520  # (partition size in the stock dtbo.img AVB footer)
 BOARD_INIT_BOOT_IMAGE_PARTITION_SIZE := 8388608
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
 BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
@@ -186,6 +186,9 @@ TARGET_SYSTEM_EXT_PROP += $(DEVICE_PATH)/configs/properties/system_ext.prop
 TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
 
 # Recovery
+# Mount points for the ADSP firmware bind mount in init.recovery.qcom.rc: init may
+# not create them itself (they would get the vendor_file_type labels).
+BOARD_ROOT_EXTRA_FOLDERS += vendor/firmware vendor/firmware_mnt
 BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
 BOARD_USES_RECOVERY_AS_BOOT := false
 TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888

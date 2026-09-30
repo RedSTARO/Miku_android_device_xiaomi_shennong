@@ -1,5 +1,21 @@
+# Audio (Dolby)
+vendor.audio.rt.mode=19
+vendor.audio.rt.mode.onlyfast=false
+vendor.audio.cpu.sched=31
+vendor.audio.cpu.sched.cpuset.at=248
+vendor.audio.cpu.sched.cpuset.af=248
+vendor.audio.cpu.sched.cpuset.hb=254
+vendor.audio.cpu.sched.cpuset.hso=248
+vendor.audio.cpu.sched.cpuset.he=248
+vendor.audio.cpu.sched.cpus=8
+vendor.audio.cpu.sched.onlyfast=false
+
 # Bluetooth
 bluetooth.device.default_name=Xiaomi 14 Pro
+
+# Camera
+persist.vendor.camera.IsVariableApertureSupported=true
+ro.vendor.camera.interpolation.mialgo.support=true
 
 # Displayfeature
 sys.displayfeature_hidl=false
@@ -11,18 +27,29 @@ ro.vendor.display.nature_mode.enable=true
 ro.vendor.display.mi_calib.enable=true
 ro.vendor.display.kernel_recoder_enable=false
 ro.vendor.display.ai_disp.enable=true
+ro.vendor.display.dobly_dpu.enable=true
+ro.vendor.display.video_or_camera_fps.support=true
 persist.vendor.dc_backlight.threshold=0
 persist.vendor.dc_backlight.enable=false
 debug.sf.set_idle_timer_ms=110
 
 # Display
 persist.sys.miui_resolution=1440x3200
+vendor.display.disable_sdr_dimming=0
+vendor.display.reserved_writeback_config=1
+
+# Fingerprint
+persist.vendor.sys.fp.fod.location.X_Y=597,2406
+persist.vendor.sys.fp.fod.size.width_height=246,246
 
 # Marketname
 ro.product.marketname=Xiaomi 14 Pro
 
 # Qti
 ro.vendor.qti.va_odm.support=1
+
+# Sensors
+persist.vendor.sensors.debug.hal_trigger_ssr=true
 
 # SSR
 persist.vendor.ssr.restart_level=ALL_ENABLE

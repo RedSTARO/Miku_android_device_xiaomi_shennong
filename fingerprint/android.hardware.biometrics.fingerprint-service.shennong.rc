@@ -14,4 +14,7 @@ on boot
     chmod 0666 /dev/input/event2
 
 on post-fs-data
+    mkdir /data/vendor/goodix 0770 system system
+    mkdir /data/vendor/fpdata 0770 system system
+    mkdir /data/vendor/fpdump 0770 system system
     mkdir /mnt/vendor/persist/goodix 0770 system system

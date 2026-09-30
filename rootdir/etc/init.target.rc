@@ -62,7 +62,6 @@
 
 import /vendor/etc/init/hw/init.qti.kernel.rc
 import /vendor/etc/init/hw/init.batterysecret.rc
-import /vendor/etc/init/hw/init.charge_logger.rc
 import /vendor/etc/init/hw/init.mi_thermald.rc
 import /vendor/etc/init/hw/init.shennong.rc
 
@@ -110,11 +109,6 @@ on fs
     restorecon_recursive /mnt/rescue
     # add Audio_DataWhale
     chmod 0666 /dev/xlog
-
-on post-fs
-    #Execute virtualization manager
-    enable vendor.qvirtservice_rs
-    start  vendor.qvirtservice_rs
 
 on late-fs
     mount_all /vendor/etc/fstab.qcom --late
@@ -226,7 +220,7 @@ on post-fs-data
     # add wlan log output path
     mkdir /data/vendor/wlan_logs 0777 root shell
     mkdir /data/vendor/mac_addr 0770 system wifi
-    mkdir /mnt/vendor/persist/kiwi_v2 0770 system wifi
+    mkdir /mnt/vendor/persist/wlan 0770 system wifi
     # Enable WLAN cold boot calibration
     write /sys/kernel/cnss/fs_ready 1
     chmod 0660 /dev/ir_spi
@@ -333,6 +327,8 @@ on boot
     chown cameraserver cameraserver /sys/class/thermal/thermal_message/torch_real_level
     chown cameraserver cameraserver /sys/class/thermal/thermal_message/flash_state
     chown system system /sys/class/thermal/thermal_message/charger_temp
+    chown system system /sys/class/thermal/power_save/powersave_mode
+    chown system system /sys/class/thermal/power_save/power_level
     chown system system /sys/class/thermal/thermal_message/board_sensor_temp_comp
     chown system system /sys/class/thermal/thermal_message/cpu_nolimit_temp
     #END Thermal_NodeReq
@@ -358,6 +354,7 @@ on property:vendor.display.lcd_density=640
 on init && property:ro.boot.mode=charger
     wait_for_prop vendor.all.modules.ready 1
     mount_all /vendor/etc/charger_fw_fstab.qti --early
+    start vendor.pd_mapper
     wait /sys/kernel/boot_adsp/boot
     write /sys/kernel/boot_adsp/boot 1
 
@@ -411,10 +408,6 @@ on property:sys.shutdown.requested=*
     write /sys/kernel/qcom_rproc/shutdown_in_progress 1
     stop vendor.per_proxy
 
-# enable root version wlan log
-on property:ro.debuggable=1
-    start vendor.tcpdump
-
 service vendor.nv_mac /vendor/bin/nv_mac
     class late_start
     user system
@@ -425,23 +418,6 @@ on early-boot && property:persist.vendor.pcie.boot_option=*
     write /sys/bus/platform/devices/1c00000.qcom,pcie/debug/boot_option ${persist.vendor.pcie.boot_option}
     write /sys/bus/platform/devices/1c08000.qcom,pcie/debug/boot_option ${persist.vendor.pcie.boot_option}
 
-service fatal_err_check /vendor/bin/check_fatal_err.sh
-    class late_start
-    user root
-    group root
-    oneshot
-
-on property:vendor.bluetooth.startwdsdaemon=true
-    start vendor.bt_wdsdaemon
-on property:vendor.bluetooth.startwdsdaemon=false
-    stop vendor.bt_wdsdaemon
-service vendor.bt_wdsdaemon /system/vendor/bin/wdsdaemon -su
-    class late_start
-    user root
-    group bluetooth diag system wakelock
-    disabled
-    oneshot
-
 #Enable WLAN SSR recovery
 on property:persist.vendor.ssr.restart_level=ALL_ENABLE
     write /sys/kernel/cnss/recovery 3
@@ -450,71 +426,6 @@ on property:persist.vendor.ssr.restart_level=ALL_ENABLE
 on property:persist.vendor.ssr.restart_level=ALL_DISABLE
     write /sys/kernel/cnss/recovery 0
 
-#on property:sys.user.0.ce_available=true
-#    start vendor.tcpdump
-
-on property:vendor.hardware.wlan.runtcpdump=stop
-     stop vendor.tcpdump
-
-on property:vendor.hardware.wlan.runtcpdump=start && property:persist.vendor.tcpdump.enable=true
-     start vendor.tcpdump
-
-on property:vendor.hardware.wlan.runsniffer=stop
-     stop vendor.sniffer
-
-on property:vendor.hardware.wlan.runsniffer=start
-     start vendor.sniffer
-
-on property:vendor.hardware.wlan.runsniffer.circular=stop
-    stop vendor.sniffer.circular
-
-on property:vendor.hardware.wlan.runsniffer.circular=start
-    start vendor.sniffer.circular
-
-service ufs_ffu_service /vendor/bin/sh /vendor/bin/ufs_ffu.sh
-    class core
-    user root
-    oneshot
-
 on property:sys.boot_completed=1
-    start ufs_ffu_service
-
-# add sniffer and tcpdump output
-service vendor.tcpdump /vendor/bin/tcpdump -i any -W 3 -C 5 -s 134 -w /data/vendor/wlan_logs/tcpdump.pcap -Z system
-    class main
-    user root
-    group root wifi
-    disabled
-    oneshot
-
-service vendor.sniffer /vendor/bin/tcpdump -i wlan0 -w /data/vendor/wlan_logs/sniffer.pcap -Z system
-    class main
-    user root
-    group root wifi
-    disabled
-    oneshot
-
-service vendor.sniffer.circular /vendor/bin/tcpdump -i wlan0 -W 3 -C 300 -w /data/vendor/wlan_logs/sniffer.pcap -Z system
-    class main
-    user root
-    group root wifi
-    disabled
-    oneshot
-
-# add persist prop for tcpdump
-on property:persist.vendor.tcpdump.enable=true
-    start vendor.tcpdump
-
-on property:persist.vendor.tcpdump.enable=false
-    stop vendor.tcpdump
-service fan_control_turn_on /vendor/bin/fan_service 1
-    class late_start
-    user root
-    disabled
-    oneshot
-
-service fan_control_turn_off /vendor/bin/fan_service 0
-    class late_start
-    user root
-    disabled
-    oneshot
+    wait /sys/class/thermal/thermal_message/boot_complete
+    write /sys/class/thermal/thermal_message/boot_complete 2

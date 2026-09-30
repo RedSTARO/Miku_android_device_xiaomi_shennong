@@ -58,12 +58,24 @@ void set_ro_build_prop(const string &prop, const string &value) {
 void vendor_load_properties() {
     // Detect variant and override properties
     string sku = GetProperty("ro.boot.hardware.sku", "");
+    string hwversion = GetProperty("ro.boot.hwversion", "");
+
+    // Xiaomi 14 Pro Ti, see /odm/etc/shennong_${ro.boot.hwversion}.prop on stock
+    bool ti_satellite = hwversion == "1.9.8" || hwversion == "1.9.9";
+    bool ti = ti_satellite || hwversion == "1.0.6" || hwversion == "1.1.6" ||
+              hwversion == "1.1.7" || hwversion == "1.2.6" || hwversion == "1.9.6";
+    string model = ti_satellite ? "2311BPN23C" : "23116PN5BC";
+
+    if (ti)
+        set_build_prop("ro.product.marketname", "Xiaomi 14 Pro Ti");
+    if (ti_satellite)
+        set_build_prop("ro.product.model_for_attestation", model);
 
     // Override device specific props
     set_ro_build_prop("device", sku);
 
     // Set device specific infomation
-    set_ro_build_prop("model", "23116PN5BC");
+    set_ro_build_prop("model", model);
     set_ro_build_prop("name", "shennong");
 
     // Override hardware revision

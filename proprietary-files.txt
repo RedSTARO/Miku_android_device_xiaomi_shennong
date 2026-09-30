@@ -36,6 +36,7 @@ odm/etc/audio/misound_res_spk_power_game.bin
 odm/etc/audio/misound_res_spk_power_sva.bin
 odm/etc/audio/misound_res_spk_power_video.bin
 odm/etc/audio/misoundsa_spk_config.bin
+odm/lib/rfsa/adsp/libadsp_jpege_skel.so
 odm/lib/rfsa/adsp/libaisupernight_cdsp_skel.so
 odm/lib/rfsa/adsp/libaisupernight_ellc_cdsp_skel.so
 odm/lib/rfsa/adsp/libarcsoft_beauty_hvx_skel.so
@@ -1346,6 +1347,7 @@ odm/lib64/libipebpsstriping170.so
 odm/lib64/libipebpsstriping480.so
 odm/lib64/libisphwsetting.so
 odm/lib64/libIntelligentFocus.so
+odm/lib64/libjpege.so
 odm/lib64/libmctfengine_stub.so
 odm/lib64/libmfec.so
 odm/lib64/libmfGhostDetection.so
@@ -1422,6 +1424,7 @@ odm/lib64/libremosaic_wrapper.so
 odm/lib64/libremosaiclib.so
 odm/lib64/librmsclib1.so
 odm/lib64/librfs_warp.so
+odm/lib64/libsfeShiftExtrapolation.so
 odm/lib64/libsnpe_config.so;DISABLE_CHECKELF
 odm/lib64/libSnpeDspV66Stub.so;FIX_SONAME
 odm/lib64/libSnpeHta.so;FIX_SONAME
@@ -1432,6 +1435,7 @@ odm/lib64/libSnpeHtpV73Stub.so
 odm/lib64/libSnpeHtpV75Stub.so
 odm/lib64/libSNPE.so
 odm/lib64/libsupermoon.so
+odm/lib64/libswregistrationalgo.so
 odm/lib64/libtfestriping.so
 odm/lib64/libtunningmemhook.so
 odm/lib64/libTrueSight.so;DISABLE_CHECKELF
@@ -2129,6 +2133,7 @@ vendor/lib64/vendor.qti.imsrtpservice@3.1.so;MODULE_SUFFIX=-vendorcompat
 
 # Init
 vendor/bin/init.class_main.sh
+vendor/bin/init.mdm.sh
 vendor/bin/init.qcom.class_core.sh
 vendor/bin/init.qcom.early_boot.sh
 vendor/bin/init.qcom.post_boot.sh
@@ -2136,6 +2141,8 @@ vendor/bin/init.qcom.sh
 vendor/etc/init/hw/init.qcom.rc
 
 # Kernel
+vendor/bin/init.kernel.extra_free_kbytes.sh
+vendor/bin/init.kernel.post_boot-memory.sh
 vendor/bin/init.kernel.post_boot-pineapple_2_3_1_1.sh
 vendor/bin/init.kernel.post_boot-pineapple_2_3_2_0.sh
 vendor/bin/init.kernel.post_boot-pineapple_default_2_3_2_1.sh
@@ -2738,6 +2745,9 @@ vendor/etc/ssg/ta_config.json
 vendor/lib64/libminkdescriptor.so
 vendor/lib64/libminksocket_vendor.so
 vendor/lib64/libnative-api.so
+
+# SMP2P
+vendor/etc/init/vendor.qti.smp2p.rc
 
 # Secure element
 vendor/etc/hal_uuid_map_shennong.xml

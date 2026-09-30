@@ -10,10 +10,14 @@ make diva
 ```
 
 > [!WARNING]
-> **BUGS**
-> - OTG doesn't have power supply 
-> - Camera and torch totally died
-> 
+> **Not tested on a device yet.** Known issues:
+> - Camera and torch: kmiit's builds had no working camera. The camera device tree and driver
+>   were reworked against stock, still unverified.
+> - OTG power: kmiit's builds did not power OTG devices. `init.shennong.rc` now enables the
+>   charger firmware's `cc_toggle` (Type-C role toggling) at boot, still unverified.
+> - Missing Xiaomi-only features: satellite (Tiantong) calls, touch hand-hold sensor, HyperOS
+>   charging/touch/display extras.
+>
 > Maybe more
 
 Xiaomi 14 Pro (codenamed _"shennong"_) is a high-end smartphone from Xiaomi.
@@ -35,3 +39,20 @@ It was announced & released in October 2023.
 |     Camera | 50MP primary, 50MP ultra-wide, 75mm floating-telephoto            |
 
 ![Xiaomi 14 Pro](https://cdn.cnbj0.fds.api.mi-img.com/b2c-shopapi-pms/pms_1698304641.51322936.png)
+
+## Installation
+
+Neither the vendor repository nor the zip carries the firmware partitions (abl, xbl, modem,
+dsp, bluetooth, keymaster, tz, ... in `proprietary-firmware.txt`). The blobs are from HyperOS
+`OS2.0.217.0.VNBCNXM` and need that firmware on **both** slots: sideloading the zip writes the
+inactive slot and boots from it, with whatever firmware that slot has. A stock OTA only updates
+one slot, so the other one usually still holds older firmware.
+
+1. Flash the stock `OS2.0.217.0.VNBCNXM` fastboot ROM with its `flash_all` script (it writes the
+   firmware to both slots with `fastboot flash <partition>_ab`), or flash every firmware image
+   of that ROM to `<partition>_ab` yourself.
+2. Flash `boot`, `dtbo`, `init_boot`, `vbmeta`, `vendor_boot` and `recovery` of this build,
+   format data in recovery and sideload the zip.
+
+Factory reset protection is enabled: remove the Google account from stock HyperOS before
+flashing, or setup will ask for it.

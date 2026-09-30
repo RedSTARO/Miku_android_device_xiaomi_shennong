@@ -41,6 +41,10 @@ bluetooth.profile.vcp.controller.enabled=true
 bluetooth.profile.sap.server.enabled=false
 bluetooth.profile.pbap.sim.enabled=true
 
+# Build (matches SHENNONG_BUILD_FINGERPRINT in miku_shennong.mk; product/etc/build.prop is
+# loaded last, so this also overrides the generated value in system/build.prop)
+ro.build.description=shennong-user 15 AQ3A.240627.003 OS2.0.217.0.VNBCNXM release-keys
+
 # Fingerprint
 persist.vendor.fingerprint.type=udfps
 persist.vendor.fingerprint.sensor_location=720:2532:128

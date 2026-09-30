@@ -25,14 +25,13 @@ PRODUCT_MANUFACTURER := Xiaomi
 PRODUCT_NAME := miku_shennong
 PRODUCT_MODEL := 23116PN5BC
 
-PRODUCT_BUILD_PROP_OVERRIDES += \
-    BuildDesc=$(call normalize-path-list, "shennong-user 15 AQ3A.240627.003 OS2.0.217.0.VNBCNXM release-keys")
-
 # Stock fingerprint. BUILD_FINGERPRINT gives every partition its ro.<part>.build.fingerprint
 # (and the AVB descriptors), but Miku UI's build/soong, unlike LineageOS', never emits a plain
 # ro.build.fingerprint (scripts/gen_build_prop.py). Without it init derives one at boot from
 # ro.product.name (= miku_shennong) and releasetools writes that same derived value into the
 # OTA metadata, so set the property here as well. Both are kept in one variable to stay in sync.
+# The matching ro.build.description is in configs/properties/product.prop: Miku UI ignores
+# BuildDesc in PRODUCT_BUILD_PROP_OVERRIDES and PRODUCT_*_PROPERTIES cannot hold spaces.
 SHENNONG_BUILD_FINGERPRINT := Xiaomi/shennong/shennong:15/AQ3A.240627.003/OS2.0.217.0.VNBCNXM:user/release-keys
 
 BUILD_FINGERPRINT := $(SHENNONG_BUILD_FINGERPRINT)

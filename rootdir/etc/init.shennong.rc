@@ -5,3 +5,14 @@ on post-fs-data
 # Touch
 on boot
     write /sys/class/touch/touch_dev/enable_touch_raw 0
+    chown system system /sys/class/touch/touch_dev/palm_sensor
+    chmod 0664 /sys/class/touch/touch_dev/palm_sensor
+
+# USB
+# The charger firmware presumably only lets the Type-C port toggle to source (OTG VBUS)
+# while cc_toggle is set. On stock only the HyperOS framework writes it (micharge rc makes
+# it writable for system), so enable it here.
+on property:sys.boot_completed=1
+    chown system system /sys/class/qcom-battery/cc_toggle
+    chmod 0660 /sys/class/qcom-battery/cc_toggle
+    write /sys/class/qcom-battery/cc_toggle 1
