@@ -1,11 +1,20 @@
 # Camera
 persist.vendor.aiie_capture_log.debug           u:object_r:vendor_camera_prop:s0
 persist.vendor.EnableP3ColorSpace               u:object_r:vendor_camera_p3enable_prop:s0
+persist.vendor.XDRVersion                       u:object_r:vendor_camera_xdrversion_prop:s0
+vendor.camera.extprovider.start                 u:object_r:vendor_camera_extcam_prop:s0
+vendor.camera.mipi.error                        u:object_r:vendor_camera_mi_prop:s0
 vendor.camera.sensor.                           u:object_r:vendor_camera_sensor_prop:s0
 vendor.camera.sensor.logsystem                  u:object_r:vendor_camera_prop:s0
 
 # Displayfeature
+persist.vendor.dc_backlight.enable              u:object_r:vendor_displayfeature_prop:s0
+persist.vendor.dc_backlight.threshold           u:object_r:vendor_displayfeature_prop:s0
+persist.vendor.dfps.level                       u:object_r:vendor_displayfeature_prop:s0
 persist.vendor.max.brightness                   u:object_r:vendor_displayfeature_prop:s0
+persist.vendor.power.dfps.level                 u:object_r:vendor_displayfeature_prop:s0
+vendor.displayfeature.entry.enable              u:object_r:vendor_displayfeature_prop:s0
+vendor.mi.filter.lut.enable                     u:object_r:vendor_displayfeature_prop:s0
 
 # Fingerprint
 persist.vendor.sys.fp.                          u:object_r:vendor_fp_prop:s0
@@ -24,9 +33,12 @@ vendor.sys.feature_state                        u:object_r:vendor_payment_securi
 vendor.sys.rpmb_state                           u:object_r:vendor_payment_security_prop:s0
 
 # Ril
+persist.vendor.oem.cta_code                     u:object_r:vendor_radio_prop:s0
+ro.vendor.oem.ctacode                           u:object_r:vendor_radio_prop:s0
 ro.vendor.oem.imei                              u:object_r:vendor_radio_prop:s0
 ro.vendor.oem.meid                              u:object_r:vendor_radio_prop:s0
 ro.vendor.oem.psno                              u:object_r:vendor_radio_prop:s0
+ro.vendor.oem.serialno                          u:object_r:vendor_radio_prop:s0
 ro.vendor.oem.sno                               u:object_r:vendor_radio_prop:s0
 
 # Sensor

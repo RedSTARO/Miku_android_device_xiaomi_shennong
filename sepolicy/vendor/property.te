@@ -1,6 +1,9 @@
 # Camera
 vendor_public_prop(vendor_camera_sensor_prop)
 vendor_public_prop(vendor_camera_p3enable_prop)
+vendor_public_prop(vendor_camera_extcam_prop)
+vendor_public_prop(vendor_camera_mi_prop)
+vendor_public_prop(vendor_camera_xdrversion_prop)
 
 # Display
 vendor_public_prop(vendor_usedframebuffer_prop)

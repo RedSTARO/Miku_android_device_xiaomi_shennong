@@ -1,6 +1,14 @@
 type vendor_displayfeature, domain;
 type vendor_displayfeature_exec, exec_type, file_type, vendor_file_type;
 
+allow vendor_displayfeature vendor_hal_displayfeature_xiaomi_service:service_manager find;
+
+binder_call(vendor_displayfeature, vendor_hal_displayfeature_xiaomi_default)
+
+binder_use(vendor_displayfeature)
+
+get_prop(vendor_displayfeature, vendor_displayfeature_prop)
+
 init_daemon_domain(vendor_displayfeature)
 vndbinder_use(vendor_displayfeature)
 add_service(vendor_displayfeature, vendor_DisplayFeatureControl_service)
