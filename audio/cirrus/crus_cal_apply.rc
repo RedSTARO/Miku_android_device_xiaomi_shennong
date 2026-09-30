@@ -1,0 +1,17 @@
+# Per-unit CS35L43 speaker protection calibration (stock: odm/etc/init/init.cirrus.rc
+# plus audio_extn_cirrus_playback_init() of the Xiaomi audio HAL)
+
+on post-fs
+    mkdir /mnt/vendor/persist/audio
+    chown audioserver audio /mnt/vendor/persist/audio
+    chmod 775 /mnt/vendor/persist/audio
+    chmod 666 /mnt/vendor/persist/audio/crus_calr.bin
+    chmod 666 /mnt/vendor/persist/audio/crus_calr.txt
+
+    start vendor.crus_cal_apply
+
+service vendor.crus_cal_apply /vendor/bin/crus_cal_apply
+    user audioserver
+    group audio
+    disabled
+    oneshot

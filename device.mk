@@ -71,6 +71,7 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     audioadsprpcd \
+    crus_cal_apply \
     libagm_compress_plugin \
     libagm_pcm_plugin \
     libagm_mixer_plugin \

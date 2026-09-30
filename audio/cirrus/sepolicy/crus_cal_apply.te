@@ -1,0 +1,12 @@
+type vendor_crus_cal_apply, domain;
+type vendor_crus_cal_apply_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_crus_cal_apply)
+
+# Read /mnt/vendor/persist/audio/crus_calr.bin
+allow vendor_crus_cal_apply mnt_vendor_file:dir search;
+r_dir_file(vendor_crus_cal_apply, vendor_persist_audio_file)
+
+# Write the "<T|B> DSP Set CAL_R" controls through /dev/snd/controlC*
+allow vendor_crus_cal_apply audio_device:dir r_dir_perms;
+allow vendor_crus_cal_apply audio_device:chr_file rw_file_perms;
