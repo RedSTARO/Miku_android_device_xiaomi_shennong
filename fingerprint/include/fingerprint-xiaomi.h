@@ -91,13 +91,16 @@ typedef struct fingerprint_enroll {
     uint64_t msg; /* Vendor specific message. Used for user guidance */
 } fingerprint_enroll_t;
 
-typedef struct fingerprint_iterator {
-    uint32_t fid;
-    uint32_t remaining_templates;
-} fingerprint_iterator_t;
+// OS2.0.217's Goodix module sends one zero-padded array for each enumerate /
+// remove request, not the legacy HAL's (fid, remaining_templates) iterator.
+// See tests/README.md for the checked blob offsets and regression coverage.
+#define FINGERPRINT_MAX_TEMPLATES 5
+typedef struct fingerprint_template_list {
+    uint32_t fids[FINGERPRINT_MAX_TEMPLATES];
+} fingerprint_template_list_t;
 
-typedef fingerprint_iterator_t fingerprint_enumerated_t;
-typedef fingerprint_iterator_t fingerprint_removed_t;
+typedef fingerprint_template_list_t fingerprint_enumerated_t;
+typedef fingerprint_template_list_t fingerprint_removed_t;
 
 typedef struct fingerprint_acquired {
     fingerprint_acquired_info_t acquired_info; /* information about the image */
@@ -268,8 +271,7 @@ typedef struct fingerprint_device {
      * 
      * Notify with:
      *  message type: FINGERPRINT_TEMPLATE_REMOVED(4)
-     *          data: { int enrollment,
-     *                  int remaining_templates}
+     *          data: zero-padded uint32_t enrollmentIds[5]
      * 
      * Callbacks that signify the end of this operation's lifecycle:
      *   - ISessionCallback#onEnrollmentsRemoved

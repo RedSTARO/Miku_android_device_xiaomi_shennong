@@ -23,12 +23,16 @@
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
+#include <atomic>
+#include <limits>
 
 using namespace ::android::fingerprint::shennong;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 namespace {
-constexpr size_t MAX_WORKER_QUEUE_SIZE = 5;
+// Vendor callbacks can be synchronous and bursty. A bounded queue would drop
+// terminal callbacks/pointer-up events or deadlock if the callback waited for it.
+constexpr size_t MAX_WORKER_QUEUE_SIZE = std::numeric_limits<size_t>::max();
 constexpr int SENSOR_ID = 5;
 constexpr common::SensorStrength SENSOR_STRENGTH = common::SensorStrength::STRONG;
 constexpr int MAX_ENROLLMENTS_PER_USER = 5;
@@ -42,7 +46,7 @@ constexpr char SW_VERSION[] = "vendor/version/revision";
 
 }  // namespace
 
-static Fingerprint* sInstance;
+static std::atomic<Fingerprint*> sInstance = nullptr;
 
 Fingerprint::Fingerprint() : mWorker(MAX_WORKER_QUEUE_SIZE) {
     sInstance = this;  // keep track of the most recent instance
@@ -67,12 +71,18 @@ Fingerprint::Fingerprint() : mWorker(MAX_WORKER_QUEUE_SIZE) {
 }
 
 void Fingerprint::notify(const fingerprint_msg_t* msg) {
-    Fingerprint* thisPtr = sInstance;
-    if (thisPtr == nullptr || thisPtr->mSession == nullptr || thisPtr->mSession->isClosed()) {
+    Fingerprint* thisPtr = sInstance.load();
+    if (!thisPtr || !msg) return;
+    std::shared_ptr<Session> session;
+    {
+        std::lock_guard lock(thisPtr->mSessionMutex);
+        session = thisPtr->mSession;
+    }
+    if (!session || session->isClosed()) {
         LOG(ERROR) << "Receiving callbacks before a session is opened.";
         return;
     }
-    thisPtr->mSession->notify(msg);
+    session->notify(msg);
 }
 
 ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
@@ -109,12 +119,22 @@ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
 ndk::ScopedAStatus Fingerprint::createSession(int32_t sensorId, int32_t userId,
                                               const std::shared_ptr<ISessionCallback>& cb,
                                               std::shared_ptr<ISession>* out) {
-    CHECK(mSession == nullptr || mSession->isClosed()) << "Open session already exists!";
-
-    mSession = SharedRefBase::make<Session>(sensorId, userId, cb, mEngine.get(), &mWorker);
-    *out = mSession;
-
-    mSession->linkToDeath(cb->asBinder().get());
+    if (sensorId != Fingerprint::cfg().get<std::int32_t>("sensor_id") || userId < 0 || !cb) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    std::shared_ptr<Session> session;
+    {
+        std::lock_guard lock(mSessionMutex);
+        if (mSession && !mSession->isClosed()) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+        }
+        session = SharedRefBase::make<Session>(sensorId, userId, cb, mEngine.get(), &mWorker);
+        mSession = session;
+    }
+    session->initialize();
+    const auto status = session->linkToDeath(cb->asBinder().get());
+    if (status == STATUS_DEAD_OBJECT) session->close();
+    *out = session;
 
     LOG(INFO) << __func__ << ": sensorId:" << sensorId << " userId:" << userId;
     return ndk::ScopedAStatus::ok();

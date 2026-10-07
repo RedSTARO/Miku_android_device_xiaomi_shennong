@@ -17,6 +17,7 @@
 #pragma once
 
 #include <aidl/android/hardware/biometrics/fingerprint/BnFingerprint.h>
+#include <mutex>
 
 #include "FingerprintEngine.h"
 
@@ -37,11 +38,11 @@ class Fingerprint : public BnFingerprint {
                                      std::shared_ptr<ISession>* out) override;
 
     static FingerprintConfig& cfg() {
-        static FingerprintConfig* cfg = nullptr;
-        if (cfg == nullptr) {
-            cfg = new FingerprintConfig();
-            cfg->init();
-        }
+        static FingerprintConfig* cfg = [] {
+            auto* config = new FingerprintConfig();
+            config->init();
+            return config;
+        }();
         return *cfg;
     }
 
@@ -50,6 +51,7 @@ class Fingerprint : public BnFingerprint {
   private:
     std::unique_ptr<FingerprintEngine> mEngine;
     WorkerThread mWorker;
+    std::mutex mSessionMutex;
     std::shared_ptr<Session> mSession;
     FingerprintSensorType mSensorType;
 };

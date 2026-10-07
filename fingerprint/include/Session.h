@@ -18,6 +18,10 @@
 
 #include <aidl/android/hardware/biometrics/fingerprint/BnSession.h>
 #include <aidl/android/hardware/biometrics/fingerprint/ISessionCallback.h>
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include "SessionTimer.h"
 
 #include "FingerprintEngine.h"
 #include "thread/WorkerThread.h"
@@ -29,12 +33,13 @@ namespace aidl::android::hardware::biometrics::fingerprint {
 namespace common = aidl::android::hardware::biometrics::common;
 namespace keymaster = aidl::android::hardware::keymaster;
 
-void onClientDeath(void* cookie);
-
 class Session : public BnSession {
   public:
     Session(int sensorId, int userId, std::shared_ptr<ISessionCallback> cb,
             FingerprintEngine* engine, WorkerThread* worker);
+    ~Session() override;
+
+    void initialize();
 
     ndk::ScopedAStatus generateChallenge() override;
 
@@ -96,27 +101,54 @@ class Session : public BnSession {
 
     void notify(const fingerprint_msg_t* msg);
   private:
-    // The sensor and user IDs for which this session was created.
-    int32_t mSensorId;
-    int32_t mUserId;
+    enum class OperationKind {
+        GenerateChallenge, RevokeChallenge, Enroll, Authenticate, DetectInteraction,
+        Enumerate, Remove, GetAuthenticatorId, InvalidateAuthenticatorId, ResetLockout,
+    };
+    struct Operation {
+        explicit Operation(OperationKind kind) : kind(kind) {}
+        const OperationKind kind;
+        std::atomic<bool> cancelRequested = false;
+        bool started = false;
+        bool cancelSent = false;
+        LockoutTracker::LockoutMode pendingLockout = LockoutTracker::LockoutMode::kNone;
+    };
+    class CancellationSignal;
 
-    // Callback for talking to the framework. This callback must only be called from non-binder
-    // threads to prevent nested binder calls and consequently a binder thread exhaustion.
-    // Practically, it means that this callback should always be called from the worker thread.
-    std::shared_ptr<ISessionCallback> mCb;
+    void post(std::function<void()> task);
+    ndk::ScopedAStatus start(OperationKind kind, std::function<int()> action,
+                            std::shared_ptr<common::ICancellationSignal>* cancellation = nullptr);
+    void cancelOperation(const std::shared_ptr<Operation>& operation);
+    void finishOperation(std::function<void()> callback);
+    void finishError(Error error, int vendorCode = 0);
+    void finishClose();
+    void handleNotify(const fingerprint_msg_t& msg);
+    bool isAcquisition() const;
+    bool checkSensorLockout();
+    void sendLockout(LockoutTracker::LockoutMode mode);
+    void startLockoutTimer(int64_t timeout);
+    void stopLockoutTimer();
+    void lockoutTimerExpired(uint64_t generation);
 
-    // Module that communicates to the actual fingerprint hardware, keystore, TEE, etc. In real
-    // life such modules typically consume a lot of memory and are slow to initialize. This is here
-    // to showcase how such a module can be used within a Session without incurring the high
-    // initialization costs every time a Session is constructed.
-    FingerprintEngine* mEngine;
+    const int32_t mSensorId;
+    const int32_t mUserId;
+    const std::shared_ptr<ISessionCallback> mCb;
+    FingerprintEngine* const mEngine;
+    WorkerThread* const mWorker;
 
-    // Worker thread that allows to schedule tasks for asynchronous execution.
-    WorkerThread* mWorker;
-
-    bool mIsClosed;
-    // Binder death handler.
-    AIBinder_DeathRecipient* mDeathRecipient;
+    // Only these flags are shared with binder/death-recipient threads. All
+    // remaining session state, HAL calls and callbacks run on the single worker.
+    std::atomic<bool> mClosing = false;
+    std::atomic<bool> mIsClosed = false;
+    std::atomic<bool> mOperationReserved = false;
+    // Serialize operation admission/queue insertion with close(), including
+    // calls arriving concurrently from a binder death recipient.
+    std::mutex mLifecycleMutex;
+    bool mReady = false;
+    std::shared_ptr<Operation> mOperation;
+    SessionTimer mLockoutTimer;
+    uint64_t mTimerGeneration = 0;
+    AIBinder_DeathRecipient* mDeathRecipient = nullptr;
 };
 
 }  // namespace aidl::android::hardware::biometrics::fingerprint

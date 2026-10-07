@@ -15,233 +15,158 @@
  */
 
 #include "FingerprintEngine.h"
-#include <regex>
 #include "Fingerprint.h"
 
 #include <android-base/logging.h>
 #include <android-base/parseint.h>
+#include <display/drm/mi_disp.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
-#include <fingerprint.sysprop.h>
+#include <string>
 
-#include "util/CancellationSignal.h"
 #include "util/Util.h"
 
-using namespace ::android::fingerprint::shennong;
 using ::android::base::ParseInt;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
-FingerprintEngine::FingerprintEngine()
-    : isLockoutTimerSupported(true) {
-    if (mDevice) {
-        LOG(INFO) << "Fingerprint HAL already opened";
-    } else {
-        mDevice = openFingerprintHal();
-        
-        if (!mDevice) {
-            LOG(ERROR) << "Can't open fingerprint HAL module, please check ro.hardware.${class}";
-        } else {
-            LOG(INFO) << "Opened fingerprint HAL module";
-        }
+FingerprintEngine::FingerprintEngine() : mDevice(openFingerprintHal()), mOwnsDevice(true) {
+    if (!mDevice) {
+        LOG(ERROR) << "Can't open fingerprint HAL module";
+        return;
+    }
+    mDisplayFd.reset(open("/dev/mi_display/disp_feature", O_RDWR | O_CLOEXEC));
+    if (mDisplayFd.get() < 0) PLOG(ERROR) << "Can't open fingerprint display device";
+}
 
-        disp_fd_ = ::android::base::unique_fd(open(DISP_FEATURE_PATH, O_RDWR));
+FingerprintEngine::FingerprintEngine(fingerprint_device_t* device) : mDevice(device) {}
+
+FingerprintEngine::~FingerprintEngine() {
+    if (mOwnsDevice && mDevice && mDevice->common.close) {
+        mDevice->common.close(&mDevice->common);
     }
 }
 
-void FingerprintEngine::setActiveGroup(int userId) {
-    LOG(INFO) << __func__;
-    auto path = std::format("/data/vendor_de/{}/fpdata/", userId);
-    uint64_t error = mDevice->setActiveGroup(mDevice, userId, path.c_str());
-    if (error) {
-        LOG(INFO) << "Failed to set active group: " << error;
-    }
+int FingerprintEngine::setActiveGroup(int userId) {
+    if (!isAvailable()) return -ENODEV;
+    const auto path = "/data/vendor_de/" + std::to_string(userId) + "/fpdata/";
+    return mDevice->setActiveGroup(mDevice, userId, path.c_str());
 }
 
 fingerprint_device_t* FingerprintEngine::openFingerprintHal() {
-    const hw_module_t* hw_mdl = nullptr;
-
-    LOG(INFO) << "Opening fingerprint hal library...";
-    if (hw_get_module(FINGERPRINT_HARDWARE_MODULE_ID, &hw_mdl) != 0) {
-        LOG(ERROR) << "Can't open fingerprint HW Module";
-        return nullptr;
-    }
-
-    if (!hw_mdl) {
-        LOG(ERROR) << "No valid fingerprint module";
-        return nullptr;
-    }
-
-    auto module = reinterpret_cast<const fingerprint_module_t*>(hw_mdl);
-    if (!module->common.methods->open) {
-        LOG(ERROR) << "No valid open method";
+    const hw_module_t* module = nullptr;
+    if (hw_get_module(FINGERPRINT_HARDWARE_MODULE_ID, &module) != 0 || !module ||
+        module->module_api_version != FINGERPRINT_MODULE_API_VERSION_2_1 ||
+        !module->methods || !module->methods->open) {
+        LOG(ERROR) << "No compatible fingerprint HW module";
         return nullptr;
     }
 
     hw_device_t* device = nullptr;
-    if (module->common.methods->open(hw_mdl, nullptr, &device) != 0) {
-        LOG(ERROR) << "Can't open fingerprint methods";
+    if (module->methods->open(module, nullptr, &device) != 0 || !device) return nullptr;
+
+    auto* fpDevice = reinterpret_cast<fingerprint_device_t*>(device);
+    if (!fpDevice->set_notify || !fpDevice->setActiveGroup || !fpDevice->generateChallenge ||
+        !fpDevice->revokeChallenge || !fpDevice->enroll || !fpDevice->authenticate ||
+        !fpDevice->cancel || !fpDevice->enumerate || !fpDevice->remove ||
+        !fpDevice->getAuthenticatorId || !fpDevice->invalidateAuthenticatorId ||
+        !fpDevice->goodixExtCmd || fpDevice->set_notify(fpDevice, Fingerprint::notify) != 0) {
+        LOG(ERROR) << "Invalid fingerprint HAL methods or callback registration failure";
+        if (device->close) device->close(device);
         return nullptr;
     }
-
-    if (module->common.module_api_version != FINGERPRINT_MODULE_API_VERSION_2_1) {
-        LOG(ERROR) << "Hardware version dosesn't match FINGERPRINT_MODULE_API_VERSION_2_1: " << module->common.module_api_version;
-        return nullptr;
-    }
-
-    auto fp_device = reinterpret_cast<fingerprint_device_t*>(device);
-    if (fp_device->set_notify(fp_device, Fingerprint::notify) != 0) {
-        LOG(ERROR) << "Can't register fingerprint module callback";
-        return nullptr;
-    }
-
-    return fp_device;
+    return fpDevice;
 }
 
 void FingerprintEngine::onAcquired(int32_t result, int32_t vendorCode) {
-    LOG(INFO) << __func__;
-    LOG(INFO) << " result: " << result << " vendorCode: " << vendorCode;
-    if (result != FINGERPRINT_ACQUIRED_VENDOR) {
-        setFingerStatus(false);
-    } else if (vendorCode == 20 || vendorCode == 22) {
-        /*
-         * vendorCode = 20 waiting for fingerprint authentication
-         * vendorCode = 22 waiting for fingerprint enroll
-         */
-    } else if (vendorCode == 44) {
-        /* vendorCode = 44 fingerprint scan failed */
+    if (result != FINGERPRINT_ACQUIRED_VENDOR || vendorCode == 44) {
         setFingerStatus(false);
     }
 }
 
 void FingerprintEngine::setFingerStatus(bool pressed) {
-    LOG(INFO) << __func__;
-    mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_STATUS, pressed ? PARAM_FOD_PRESSED : PARAM_FOD_RELEASED);
-    mDevice->goodixExtCmd(mDevice, COMMAND_NIT, pressed ? PARAM_NIT_FOD : PARAM_NIT_NONE);
-
-    req.local_hbm_value = pressed ? LHBM_TARGET_BRIGHTNESS_WHITE_1000NIT
-                                          : LHBM_TARGET_BRIGHTNESS_OFF_FINGER_UP;
-    ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &req);
-}
-
-void FingerprintEngine::generateChallengeImpl(ISessionCallback* /*cb*/) {
-    LOG(INFO) << __func__;
-    mDevice->generateChallenge(mDevice);
-}
-
-void FingerprintEngine::revokeChallengeImpl(ISessionCallback* /*cb*/, int64_t challenge) {
-    LOG(INFO) << __func__;
-    uint64_t error = mDevice->revokeChallenge(mDevice, challenge);
-    if (error) {
-        LOG(ERROR) << "Failed to revoke challenge=" << challenge
-                    << " error=" << error;
+    // Even after a HAL failure, turn off LHBM; do not leave the illumination on.
+    if (isAvailable()) {
+        mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_STATUS,
+                             pressed ? PARAM_FOD_PRESSED : PARAM_FOD_RELEASED);
+        mDevice->goodixExtCmd(mDevice, COMMAND_NIT, pressed ? PARAM_NIT_FOD : PARAM_NIT_NONE);
+    }
+    if (mDisplayFd.get() >= 0) {
+        disp_local_hbm_req req = {
+                .base = {.flag = 0, .disp_id = MI_DISP_PRIMARY},
+                .local_hbm_value = pressed ? LHBM_TARGET_BRIGHTNESS_WHITE_1000NIT
+                                          : LHBM_TARGET_BRIGHTNESS_OFF_FINGER_UP,
+        };
+        if (ioctl(mDisplayFd.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &req) < 0) {
+            PLOG(ERROR) << "Failed to set fingerprint illumination";
+        }
     }
 }
 
-void FingerprintEngine::enrollImpl(ISessionCallback* cb,
-                                       const keymaster::HardwareAuthToken& hat,
-                                       const std::future<void>& /*cancel*/) {
-    LOG(INFO) << __func__;
+int FingerprintEngine::generateChallengeImpl() {
+    return isAvailable() ? mDevice->generateChallenge(mDevice) : -ENODEV;
+}
 
-    hw_auth_token_t authToken;
+int FingerprintEngine::revokeChallengeImpl(int64_t challenge) {
+    return isAvailable() ? mDevice->revokeChallenge(mDevice, challenge) : -ENODEV;
+}
+
+int FingerprintEngine::enrollImpl(const keymaster::HardwareAuthToken& hat) {
+    if (!isAvailable()) return -ENODEV;
+    hw_auth_token_t authToken{};
+    if (hat.mac.size() != sizeof(authToken.hmac)) return -EINVAL;
     translate(hat, authToken);
-    int error = mDevice->enroll(mDevice, &authToken);
-    if (error){
-        LOG(ERROR) << "enroll failed: " << error;
-        cb->onError(Error::UNABLE_TO_PROCESS, error);
-    }
-
+    return mDevice->enroll(mDevice, &authToken);
 }
 
-void FingerprintEngine::authenticateImpl(ISessionCallback* cb, int64_t operationId,
-                                             const std::future<void>& /*cancel*/) {
-    LOG(INFO) << __func__;
-
-    int error = mDevice->authenticate(mDevice, operationId);
-    if (error) {
-        LOG(ERROR) << "authenticate failed: " << error;
-        cb->onError(Error::UNABLE_TO_PROCESS, error);
-    }
+int FingerprintEngine::authenticateImpl(int64_t operationId) {
+    return isAvailable() ? mDevice->authenticate(mDevice, operationId) : -ENODEV;
 }
 
-void FingerprintEngine::detectInteractionImpl(ISessionCallback* cb,
-                                                  const std::future<void>& /*cancel*/) {
-    LOG(INFO) << __func__;
-
-    auto detectInteractionSupported = Fingerprint::cfg().get<bool>("detect_interaction");
-    if (!detectInteractionSupported) {
-        LOG(ERROR) << "Detect interaction is not supported";
-        cb->onError(Error::UNABLE_TO_PROCESS, 0 /* vendorError */);
-        return;
-    }
+int FingerprintEngine::cancelImpl() {
+    return isAvailable() ? mDevice->cancel(mDevice) : -ENODEV;
 }
 
-void FingerprintEngine::enumerateEnrollmentsImpl(ISessionCallback* cb) {
-    LOG(INFO) << __func__;
-    int error = mDevice->enumerate(mDevice);
-    if (error) {
-        LOG(ERROR) << "enumerate failed: " << error;
-        cb->onError(Error::UNABLE_TO_PROCESS, error);
-    }
+int FingerprintEngine::enumerateEnrollmentsImpl() {
+    return isAvailable() ? mDevice->enumerate(mDevice) : -ENODEV;
 }
 
-void FingerprintEngine::removeEnrollmentsImpl(ISessionCallback * /*cb*/,
-                                              const std::vector<int32_t> &enrollmentIds){
-    LOG(INFO) << __func__;
-    mDevice->remove(mDevice, enrollmentIds.data(), enrollmentIds.size());
+int FingerprintEngine::removeEnrollmentsImpl(const std::vector<int32_t>& enrollmentIds) {
+    return isAvailable() ? mDevice->remove(mDevice, enrollmentIds.data(), enrollmentIds.size())
+                         : -ENODEV;
 }
 
-void FingerprintEngine::getAuthenticatorIdImpl(ISessionCallback* /*cb*/) {
-    LOG(INFO) << __func__;
-    mDevice->getAuthenticatorId(mDevice);
+int FingerprintEngine::getAuthenticatorIdImpl() {
+    return isAvailable() ? mDevice->getAuthenticatorId(mDevice) : -ENODEV;
 }
 
-void FingerprintEngine::invalidateAuthenticatorIdImpl(ISessionCallback* /*cb*/) {
-    LOG(INFO) << __func__;
-    mDevice->invalidateAuthenticatorId(mDevice);
-}
-
-void FingerprintEngine::resetLockoutImpl(ISessionCallback* cb,
-                                             const keymaster::HardwareAuthToken& hat) {
-    LOG(INFO) << __func__;
-    if (hat.mac.empty()) {
-        LOG(ERROR) << "Fail: hat in resetLockout()";
-        cb->onError(Error::UNABLE_TO_PROCESS, 0 /* vendorError */);
-        return;
-    }
-    clearLockout(cb);
-    if (isLockoutTimerStarted) isLockoutTimerAborted = true;
-}
-
-void FingerprintEngine::clearLockout(ISessionCallback* cb, bool dueToTimeout) {
-    cb->onLockoutCleared();
-    mLockoutTracker.reset(dueToTimeout);
+int FingerprintEngine::invalidateAuthenticatorIdImpl() {
+    return isAvailable() ? mDevice->invalidateAuthenticatorId(mDevice) : -ENODEV;
 }
 
 ndk::ScopedAStatus FingerprintEngine::onPointerDownImpl(int32_t /*pointerId*/, int32_t x,
-                                                            int32_t y, float /*minor*/,
-                                                            float /*major*/) {
-    LOG(INFO) << __func__;
-    // mDevice->onPointerDown(mDevice, pointerId, x, y, minor, major);
-    mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_X, x);
-    mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_Y, y);
-    setFingerStatus(true);
-
-    // verify whetehr touch coordinates/area matching sensor location ?
+                                                      int32_t y, float /*minor*/,
+                                                      float /*major*/) {
+    if (isAvailable()) {
+        mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_X, x);
+        mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_Y, y);
+        setFingerStatus(true);
+    }
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus FingerprintEngine::onPointerUpImpl(int32_t /*pointerId*/) {
-    LOG(INFO) << __func__;
-
-    // mDevice->onPointerUp(mDevice, pointerId);
-    mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_X, 0);
-    mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_Y, 0);
+    if (isAvailable()) {
+        mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_X, 0);
+        mDevice->goodixExtCmd(mDevice, COMMAND_FOD_PRESS_Y, 0);
+    }
     setFingerStatus(false);
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus FingerprintEngine::onUiReadyImpl() {
-    LOG(INFO) << __func__;
     return ndk::ScopedAStatus::ok();
 }
 
@@ -295,40 +220,4 @@ std::pair<Error, int32_t> FingerprintEngine::convertError(int32_t code) {
     return res;
 }
 
-bool FingerprintEngine::checkSensorLockout(ISessionCallback* cb) {
-    LockoutTracker::LockoutMode lockoutMode = mLockoutTracker.getMode();
-    if (lockoutMode == LockoutTracker::LockoutMode::kPermanent) {
-        LOG(ERROR) << "Fail: lockout permanent";
-        cb->onLockoutPermanent();
-        isLockoutTimerAborted = true;
-        return true;
-    } else if (lockoutMode == LockoutTracker::LockoutMode::kTimed) {
-        int64_t timeLeft = mLockoutTracker.getLockoutTimeLeft();
-        LOG(ERROR) << "Fail: lockout timed " << timeLeft;
-        cb->onLockoutTimed(timeLeft);
-        if (isLockoutTimerSupported && !isLockoutTimerStarted) startLockoutTimer(timeLeft, cb);
-        return true;
-    }
-    return false;
-}
-
-void FingerprintEngine::startLockoutTimer(int64_t timeout, ISessionCallback* cb) {
-    LOG(INFO) << __func__;
-    std::function<void(ISessionCallback*)> action =
-            std::bind(&FingerprintEngine::lockoutTimerExpired, this, std::placeholders::_1);
-    std::thread([timeout, action, cb]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
-        action(cb);
-    }).detach();
-
-    isLockoutTimerStarted = true;
-}
-void FingerprintEngine::lockoutTimerExpired(ISessionCallback* cb) {
-    LOG(INFO) << __func__;
-    if (!isLockoutTimerAborted) {
-        clearLockout(cb, true);
-    }
-    isLockoutTimerStarted = false;
-    isLockoutTimerAborted = false;
-}
 }  // namespace aidl::android::hardware::biometrics::fingerprint

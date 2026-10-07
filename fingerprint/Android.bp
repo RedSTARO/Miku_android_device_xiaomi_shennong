@@ -4,10 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-cc_binary {
-    name: "android.hardware.biometrics.fingerprint-service.shennong",
-    init_rc: ["android.hardware.biometrics.fingerprint-service.shennong.rc"],
-    vintf_fragments: ["android.hardware.biometrics.fingerprint-service.shennong.xml"],
+cc_defaults {
+    name: "shennong_fingerprint_defaults",
     header_libs: [
         "generated_kernel_headers",
         "shennong_fingerprint_headers",
@@ -15,10 +13,8 @@ cc_binary {
     srcs: [
         "FingerprintConfig.cpp",
         "FingerprintEngine.cpp",
-        "Fingerprint.cpp",
         "LockoutTracker.cpp",
         "Session.cpp",
-        "main.cpp",
     ],
     shared_libs: [
         "android.hardware.biometrics.fingerprint-V4-ndk",
@@ -35,8 +31,24 @@ cc_binary {
     whole_static_libs: [
         "libandroid.hardware.biometrics.fingerprint.shennong.Props",
     ],
-    relative_install_path: "hw",
     vendor: true,
+}
+
+cc_binary {
+    name: "android.hardware.biometrics.fingerprint-service.shennong",
+    defaults: ["shennong_fingerprint_defaults"],
+    init_rc: ["android.hardware.biometrics.fingerprint-service.shennong.rc"],
+    vintf_fragments: ["android.hardware.biometrics.fingerprint-service.shennong.xml"],
+    srcs: ["Fingerprint.cpp", "main.cpp"],
+    relative_install_path: "hw",
+}
+
+cc_test {
+    name: "shennong_fingerprint_test",
+    defaults: ["shennong_fingerprint_defaults"],
+    srcs: ["tests/SessionTest.cpp"],
+    gtest: false,
+    test_suites: ["device-tests"],
 }
 
 sysprop_library {

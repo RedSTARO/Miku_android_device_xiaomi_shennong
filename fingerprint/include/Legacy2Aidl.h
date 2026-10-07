@@ -11,11 +11,13 @@
 #include <hardware/hw_auth_token.h>
 
 #include <endian.h>
+#include <algorithm>
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
 inline void translate(const ::aidl::android::hardware::keymaster::HardwareAuthToken& authToken,
                       hw_auth_token_t& hat) {
+    hat = {};
     hat.challenge = authToken.challenge;
     hat.user_id = authToken.userId;
     hat.authenticator_id = authToken.authenticatorId;

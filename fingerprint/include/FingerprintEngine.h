@@ -16,99 +16,62 @@
 
 #pragma once
 
-#define LOG_TAG "FingerprintHal"
-
-#include <aidl/android/hardware/biometrics/common/SensorStrength.h>
 #include <aidl/android/hardware/biometrics/fingerprint/ISessionCallback.h>
-#include <android-base/unique_fd.h>
-#include <android/binder_to_string.h>
-#include <string>
-
-#include <random>
-
 #include <aidl/android/hardware/biometrics/fingerprint/SensorLocation.h>
-#include <future>
+#include <android-base/unique_fd.h>
+
+#include <unordered_map>
 #include <vector>
 
+#include "Legacy2Aidl.h"
 #include "LockoutTracker.h"
-
-#include <fstream>
 #include "fingerprint-xiaomi.h"
-#include <display/drm/mi_disp.h>
-
-#define DISP_FEATURE_PATH "/dev/mi_display/disp_feature"
-
-using namespace ::aidl::android::hardware::biometrics::common;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
+// HAL access and per-user lockout state are confined to Fingerprint's worker.
 class FingerprintEngine {
   public:
     FingerprintEngine();
-    virtual ~FingerprintEngine() {}
+    // A non-owning HAL injection point for tests; it never opens display hardware.
+    explicit FingerprintEngine(fingerprint_device_t* device);
+    ~FingerprintEngine();
 
-    void setActiveGroup(int userId);
-    void generateChallengeImpl(ISessionCallback* cb);
-    void revokeChallengeImpl(ISessionCallback* cb, int64_t challenge);
-    virtual void enrollImpl(ISessionCallback* cb, const keymaster::HardwareAuthToken& hat,
-                            const std::future<void>& cancel);
-    virtual void authenticateImpl(ISessionCallback* cb, int64_t operationId,
-                                  const std::future<void>& cancel);
-    virtual void detectInteractionImpl(ISessionCallback* cb, const std::future<void>& cancel);
-    void enumerateEnrollmentsImpl(ISessionCallback* cb);
-    void removeEnrollmentsImpl(ISessionCallback* cb, const std::vector<int32_t>& enrollmentIds);
-    void getAuthenticatorIdImpl(ISessionCallback* cb);
-    void invalidateAuthenticatorIdImpl(ISessionCallback* cb);
-    void resetLockoutImpl(ISessionCallback* cb, const keymaster::HardwareAuthToken& hat);
+    bool isAvailable() const { return mDevice != nullptr && !mFailed; }
+    void markUnavailable() { mFailed = true; }
+    int setActiveGroup(int userId);
+    int generateChallengeImpl();
+    int revokeChallengeImpl(int64_t challenge);
+    int enrollImpl(const keymaster::HardwareAuthToken& hat);
+    int authenticateImpl(int64_t operationId);
+    int cancelImpl();
+    int enumerateEnrollmentsImpl();
+    int removeEnrollmentsImpl(const std::vector<int32_t>& enrollmentIds);
+    int getAuthenticatorIdImpl();
+    int invalidateAuthenticatorIdImpl();
 
-    virtual ndk::ScopedAStatus onPointerDownImpl(int32_t pointerId, int32_t x, int32_t y,
-                                                 float minor, float major);
+    ndk::ScopedAStatus onPointerDownImpl(int32_t pointerId, int32_t x, int32_t y,
+                                       float minor, float major);
+    ndk::ScopedAStatus onPointerUpImpl(int32_t pointerId);
+    ndk::ScopedAStatus onUiReadyImpl();
+    SensorLocation getSensorLocation();
 
-    virtual ndk::ScopedAStatus onPointerUpImpl(int32_t pointerId);
-
-    virtual ndk::ScopedAStatus onUiReadyImpl();
-
-    virtual SensorLocation getSensorLocation();
-  
-  protected:
-    ISessionCallback* mCb;
+    LockoutTracker& lockoutTracker(int userId) { return mLockoutTrackers[userId]; }
+    void onAcquired(int32_t result, int32_t vendorCode);
+    std::pair<AcquiredInfo, int32_t> convertAcquiredInfo(int32_t code);
+    std::pair<Error, int32_t> convertError(int32_t code);
 
   private:
     static constexpr int32_t FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000;
     static constexpr int32_t FINGERPRINT_ERROR_VENDOR_BASE = 1000;
-    void clearLockout(ISessionCallback* cb, bool dueToTimeout = false);
-    void waitForFingerDown(ISessionCallback* cb, const std::future<void>& cancel);
-
     fingerprint_device_t* openFingerprintHal();
-
-    fingerprint_device_t* mDevice;
     void setFingerStatus(bool pressed);
 
-    ::android::base::unique_fd disp_fd_;
-    disp_local_hbm_req req = {
-        .base = {
-          .flag = 0,
-          .disp_id = MI_DISP_PRIMARY,
-        },
-        .local_hbm_value = LHBM_TARGET_BRIGHTNESS_OFF_FINGER_UP,
-    };
-
-  protected:
-    // lockout timer
-    void lockoutTimerExpired(ISessionCallback* cb);
-    bool isLockoutTimerSupported;
-    bool isLockoutTimerStarted;
-    bool isLockoutTimerAborted;
-
-  public:
-    void startLockoutTimer(int64_t timeout, ISessionCallback* cb);
-    bool getLockoutTimerStarted() { return isLockoutTimerStarted; };
-
-    LockoutTracker mLockoutTracker;
-    void onAcquired(int32_t result, int32_t vendorCode);
-    std::pair<AcquiredInfo, int32_t> convertAcquiredInfo(int32_t code);
-    std::pair<Error, int32_t> convertError(int32_t code);
-    bool checkSensorLockout(ISessionCallback*);
+    fingerprint_device_t* mDevice = nullptr;
+    bool mOwnsDevice = false;
+    bool mFailed = false;
+    ::android::base::unique_fd mDisplayFd;
+    std::unordered_map<int, LockoutTracker> mLockoutTrackers;
 };
 
 }  // namespace aidl::android::hardware::biometrics::fingerprint

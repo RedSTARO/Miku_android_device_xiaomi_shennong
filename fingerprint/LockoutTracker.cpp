@@ -15,11 +15,8 @@
  */
 
 #include "LockoutTracker.h"
-#include <fingerprint.sysprop.h>
-#include "Fingerprint.h"
+#include <android-base/logging.h>
 #include "util/Util.h"
-
-using namespace ::android::fingerprint::shennong;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
