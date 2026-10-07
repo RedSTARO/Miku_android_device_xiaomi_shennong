@@ -229,6 +229,10 @@ vendor/lib64/soundfx/libvisualizer.so
 vendor/bin/batterysecret
 vendor/etc/init/hw/init.batterysecret.rc
 
+# Stock init tools
+vendor/bin/bootmode;MODULE=shennong_bootmode
+vendor/bin/diag_mdlog;MODULE=shennong_diag_mdlog
+
 # Bluetooth
 vendor/bin/hw/android.hardware.bluetooth@1.1-service-qti
 vendor/etc/init/android.hardware.bluetooth@1.1-service-qti.rc

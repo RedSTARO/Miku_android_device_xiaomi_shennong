@@ -42,7 +42,37 @@ lib_fixups: lib_fixups_user_type = {
     ): lib_fixup_vendorcompat,
 }
 
+# These generic init declarations have no implementation in the Shennong
+# product. Keep supported qcrild/GKI/script services and prune their old aliases.
+obsolete_init_services = {
+    'init.qcom.rc': (
+        'wigignpt', 'vendor.sensingdaemon', 'wifi-sdio-on', 'wifi-crda',
+        'qvop-daemon', 'vendor.ril-daemon2', 'vendor.ril-daemon3', 'vm_bms',
+        'vendor.msm_irqbalance', 'vendor.msm_irqbal_lb', 'vendor.msm_irqbl_sdm630',
+        'vendor.LKCore-dbg', 'vendor.LKCore-rel', 'vendor.hbtp', 'chre',
+    ),
+    'init.qti.kernel.rc': ('vendor.msm_irqbalance', 'load_dlkm'),
+}
+
+def prune_init_services(names):
+    import re
+    names_pattern = '|'.join(re.escape(name) for name in names)
+    return (blob_fixup()
+        .regex_replace(
+            rf'(?ms)^service (?:{names_pattern})[ \t][^\n]*\n.*?(?=^(?:service|on|import)[ \t]|\Z)',
+            '')
+        .regex_replace(
+            rf'(?m)^[ \t]+(?:start|stop|restart|exec_start)[ \t]+(?:{names_pattern})[ \t]*\n',
+            '')
+        .regex_replace(
+            r'(?ms)^on [^\n]*\n(?:(?:[ \t]*|[ \t]*#[^\n]*)\n)*(?=^(?:service|on|import)[ \t]|\Z)',
+            ''))
+
 blob_fixups: blob_fixups_user_type = {
+    **{
+        f'vendor/etc/init/hw/{filename}': prune_init_services(names)
+        for filename, names in obsolete_init_services.items()
+    },
     (
         'odm/etc/camera/enhance_motiontuning.xml',
         'odm/etc/camera/night_motiontuning.xml',

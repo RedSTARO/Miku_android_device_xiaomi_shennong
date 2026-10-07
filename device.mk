@@ -133,6 +133,10 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.drm-service.clearkey
 
+# Vendor diagnostic service referenced by init.qcom.rc
+PRODUCT_PACKAGES += \
+    tcpdump_vendor
+
 # Fastboot
 PRODUCT_PACKAGES += \
     fastbootd \
