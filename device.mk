@@ -318,6 +318,8 @@ PRODUCT_SHIPPING_API_LEVEL := 34
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH) \
     frameworks/av/services/audiopolicy/config \
+    hardware/nxp/keymint/generic \
+    hardware/nxp/weaver/generic \
     hardware/xiaomi \
     vendor/qcom/opensource/usb/etc
 

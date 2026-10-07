@@ -16,8 +16,10 @@ make diva
 This branch preserves the fingerprint, sensor and kernel fixes from the Android 16 port.
 It remains an upgrade of an API 34 launch device: shipping API 34, FCM 8 and fingerprint
 AIDL V4 are retained. The previous host regression and Android 16 native compilation
-results do not establish Android 17 build compatibility; that validation is pending a
-complete Cinderella source sync and build.
+results do not establish Android 17 build compatibility; the Cinderella source sync
+has completed, while a full build remains pending. Android 17 exports the NXP generic
+KeyMint and Weaver namespaces explicitly; their existing service names and AIDL
+versions are retained.
 
 > [!WARNING]
 > **Not tested on a device yet.** Known issues:
