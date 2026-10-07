@@ -9,6 +9,6 @@ PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/miku_shennong.mk
 
 COMMON_LUNCH_CHOICES := \
-    miku_shennong-bp4a-eng \
-    miku_shennong-bp4a-user \
-    miku_shennong-bp4a-userdebug
+    miku_shennong-cp2a-eng \
+    miku_shennong-cp2a-user \
+    miku_shennong-cp2a-userdebug

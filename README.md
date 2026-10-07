@@ -1,13 +1,23 @@
 # Device tree for Xiaomi 14 Pro
 
-Miku UI Blooming_v2 port of [kmiit's lineage-23.0 device tree](https://github.com/kmiit/android_device_xiaomi_shennong),
-with the kernel built from source. Built by [MikuUIBuilder](https://github.com/RedSTARO/MikuUIBuilder) (branch `shennong`):
+Miku UI Cinderella (Android 17 / C) port of
+[kmiit's lineage-23.0 device tree](https://github.com/kmiit/android_device_xiaomi_shennong),
+with the kernel built from source. Use this device repository's `Cinderella` branch with
+the [Miku UI Cinderella manifest](https://github.com/Miku-UI/manifesto/tree/Cinderella)
+(`android-17.0.0_r1` base) and its `cp2a` release configuration.
+[MikuUIBuilder](https://github.com/RedSTARO/MikuUIBuilder) remains on branch `shennong`:
 
 ```bash
 . build/envsetup.sh
-lunch miku_shennong-bp4a-userdebug
+lunch miku_shennong-cp2a-userdebug
 make diva
 ```
+
+This branch preserves the fingerprint, sensor and kernel fixes from the Android 16 port.
+It remains an upgrade of an API 34 launch device: shipping API 34, FCM 8 and fingerprint
+AIDL V4 are retained. The previous host regression and Android 16 native compilation
+results do not establish Android 17 build compatibility; that validation is pending a
+complete Cinderella source sync and build.
 
 > [!WARNING]
 > **Not tested on a device yet.** Known issues:
