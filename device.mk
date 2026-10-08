@@ -135,7 +135,8 @@ PRODUCT_PACKAGES += \
 
 # Vendor diagnostic service referenced by init.qcom.rc
 PRODUCT_PACKAGES += \
-    tcpdump_vendor
+    tcpdump_vendor \
+    nqnfcinfo
 
 # Fastboot
 PRODUCT_PACKAGES += \
