@@ -50,6 +50,8 @@ obsolete_init_services = {
         'qvop-daemon', 'vendor.ril-daemon2', 'vendor.ril-daemon3', 'vm_bms',
         'vendor.msm_irqbalance', 'vendor.msm_irqbal_lb', 'vendor.msm_irqbl_sdm630',
         'vendor.LKCore-dbg', 'vendor.LKCore-rel', 'vendor.hbtp', 'chre',
+        'iop', 'qcomsysd', 'ptt_socket_app', 'ptt_ffbm', 'wifi_ftmd',
+        'qti-testscripts', 'qseeproxydaemon', 'esepmdaemon', 'poweroffhandler',
     ),
     'init.qti.kernel.rc': ('vendor.msm_irqbalance', 'load_dlkm'),
 }
@@ -62,7 +64,7 @@ def prune_init_services(names):
             rf'(?ms)^service (?:{names_pattern})[ \t][^\n]*\n.*?(?=^(?:service|on|import)[ \t]|\Z)',
             '')
         .regex_replace(
-            rf'(?m)^[ \t]+(?:start|stop|restart|exec_start)[ \t]+(?:{names_pattern})[ \t]*\n',
+            rf'(?m)^[ \t]+(?:start|stop|restart|exec_start|enable)[ \t]+(?:{names_pattern})[ \t]*\n',
             '')
         .regex_replace(
             r'(?ms)^on [^\n]*\n(?:(?:[ \t]*|[ \t]*#[^\n]*)\n)*(?=^(?:service|on|import)[ \t]|\Z)',

@@ -232,6 +232,9 @@ vendor/etc/init/hw/init.batterysecret.rc
 # Stock init tools
 vendor/bin/bootmode;MODULE=shennong_bootmode
 vendor/bin/diag_mdlog;MODULE=shennong_diag_mdlog
+vendor/bin/nqnfcinfo;MODULE=shennong_nqnfcinfo
+vendor/bin/early_eth.sh
+vendor/bin/vendor.qti.diag.sh
 
 # Bluetooth
 vendor/bin/hw/android.hardware.bluetooth@1.1-service-qti
