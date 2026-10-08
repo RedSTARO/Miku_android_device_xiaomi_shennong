@@ -15,11 +15,12 @@ make diva
 
 This branch preserves the fingerprint, sensor and kernel fixes from the Android 16 port.
 It remains an upgrade of an API 34 launch device: shipping API 34, FCM 8 and fingerprint
-AIDL V4 are retained. The previous host regression and Android 16 native compilation
-results do not establish Android 17 build compatibility; the Cinderella source sync
-has completed, while a full build remains pending. Android 17 exports the NXP generic
-KeyMint and Weaver namespaces explicitly; their existing service names and AIDL
-versions are retained.
+AIDL V4 are retained. Cinderella has passed a complete Android 17 / SDK 37 build,
+strict offline OTA checks and the scoped native ELF audit. The audit covered 135
+service/plugin contexts and 825 ELF objects without dependency or relocated strong
+symbol findings; it does not cover every optional library or runtime behavior.
+Android 17 exports the NXP generic KeyMint and Weaver namespaces explicitly;
+their existing service names and AIDL versions are retained.
 
 > [!WARNING]
 > **Not tested on a device yet.** Known issues:
@@ -29,6 +30,8 @@ versions are retained.
 >   charger firmware's `cc_toggle` (Type-C role toggling) at boot, still unverified.
 > - Missing Xiaomi-only features: satellite (Tiantong) calls, touch hand-hold sensor, HyperOS
 >   charging/touch/display extras.
+> - Legacy CSL external-fence publication and Synaptics factory acquisition/error
+>   recovery still have open on-paper risks; see the builder's testing report.
 >
 > Maybe more
 
